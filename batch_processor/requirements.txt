@@ -6,4 +6,5 @@ joblib
 prometheus_client
 loguru
 sqlalchemy
+evidently
 # Add any other libraries needed for batch processing, e.g., sqlalchemy if using it 

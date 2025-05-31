@@ -2,7 +2,7 @@ import sys
 from loguru import logger
 from prometheus_client import CollectorRegistry, Gauge, Counter, Histogram, push_to_gateway
 import os
-import config # Use relative import for config
+from batch_processor import config # Use relative import for config
 
 # --- Logger Setup with Loguru --- #
 logger.remove()

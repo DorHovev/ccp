@@ -1,9 +1,9 @@
 import pandas as pd
 import os
-import config
+from batch_processor import config
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float, TIMESTAMP, select, text
 from sqlalchemy.exc import SQLAlchemyError
-from monitoring import (
+from batch_processor.monitoring import (
     logger, record_error, 
     ROWS_LOADED_FROM_CSV_TOTAL, ROWS_SKIPPED_DUPLICATES_TOTAL, 
     DATA_CONVERSION_ERRORS_TOTAL, ROWS_MISSING_CUSTOMERID_TOTAL,
