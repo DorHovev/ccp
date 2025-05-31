@@ -1,0 +1,9 @@
+psycopg2-binary
+pandas
+numpy==1.23.5
+scikit-learn==1.2.2
+joblib
+prometheus_client
+loguru
+sqlalchemy
+# Add any other libraries needed for batch processing, e.g., sqlalchemy if using it 
