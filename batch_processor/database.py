@@ -9,7 +9,8 @@ from batch_processor.monitoring import (
     logger, record_error, 
     ROWS_LOADED_FROM_CSV_TOTAL, ROWS_SKIPPED_DUPLICATES_TOTAL, 
     DATA_CONVERSION_ERRORS_TOTAL, ROWS_MISSING_CUSTOMERID_TOTAL,
-    ROWS_FETCHED_FOR_PREPROCESSING_TOTAL, PREDICTIONS_PERSISTED_TOTAL
+    ROWS_FETCHED_FOR_PREPROCESSING_TOTAL, PREDICTIONS_PERSISTED_TOTAL,
+    CUSTOM_ERROR_TYPE_TOTAL
 )
 
 class DatabaseManager:
@@ -68,8 +69,9 @@ class DatabaseManager:
             self.metadata.create_all(self.engine)
             logger.info("Database tables checked/created successfully (SQLAlchemy).")
         except SQLAlchemyError as e:
-                logger.error(f"Error creating database tables: {e}")
-                record_error("db_schema_creation", f"SQLAlchemy Error: {e}")
+            logger.error(f"Error creating database tables: {e}")
+            record_error("db_schema_creation", f"SQLAlchemy Error: {e}")
+            CUSTOM_ERROR_TYPE_TOTAL.labels(custom_error_type="db_schema_creation").inc()
 
     def load_csv_to_db(self, csv_filepath):
         rows_inserted = 0
@@ -82,6 +84,7 @@ class DatabaseManager:
         except FileNotFoundError:
             logger.error(f"CSV file not found: {csv_filepath}")
             record_error("csv_load_file_not_found", f"File: {os.path.basename(csv_filepath)}")
+            CUSTOM_ERROR_TYPE_TOTAL.labels(custom_error_type="csv_load_file_not_found").inc()
             return rows_inserted, rows_skipped_duplicates, rows_missing_id, rows_conversion_error
         except pd.errors.EmptyDataError:
             logger.warning(f"CSV file is empty: {csv_filepath}")
@@ -89,6 +92,7 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error reading CSV {csv_filepath}: {e}")
             record_error("csv_read_error", f"File: {os.path.basename(csv_filepath)}, Error: {e}")
+            CUSTOM_ERROR_TYPE_TOTAL.labels(custom_error_type="csv_read_error").inc()
             return rows_inserted, rows_skipped_duplicates, rows_missing_id, rows_conversion_error
 
         df.rename(columns=lambda x: x.strip().lower(), inplace=True)
@@ -97,6 +101,7 @@ class DatabaseManager:
         if 'customerid' not in df.columns:
             logger.critical(f"'customerid' column missing in {csv_filepath}. Skipping this file.")
             record_error("csv_format_error", f"File: {os.path.basename(csv_filepath)}, Missing customerid column")
+            CUSTOM_ERROR_TYPE_TOTAL.labels(custom_error_type="csv_format_error").inc()
             return rows_inserted, rows_skipped_duplicates, rows_missing_id, rows_conversion_error
 
         with self.engine.begin() as conn:
@@ -147,6 +152,7 @@ class DatabaseManager:
                     logger.error(f"Row {idx+2} in {csv_filepath} (customerid: {customer_id}): Unexpected error - {e}. Skipping row.")
                     rows_conversion_error += 1
                     record_error("unknown_insert_row_error", f"File: {os.path.basename(csv_filepath)}, Customer: {customer_id}, Error: {e}")
+                    CUSTOM_ERROR_TYPE_TOTAL.labels(custom_error_type="unknown_insert_row_error").inc()
             
             logger.info(f"Processed {os.path.basename(csv_filepath)}: Inserted: {rows_inserted}, Skipped Duplicates: {rows_skipped_duplicates}, Skipped Missing ID: {rows_missing_id}, Conversion Errors: {rows_conversion_error}")
             if rows_inserted > 0:
@@ -182,6 +188,7 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Unexpected error fetching data for preprocessing: {e}")
             record_error("db_fetch_unexpected_error", f"Error: {e}")
+            CUSTOM_ERROR_TYPE_TOTAL.labels(custom_error_type="db_fetch_unexpected_error").inc()
             return pd.DataFrame()
 
     def persist_predictions(self, customer_ids, features_df, predictions, probabilities, model_version="1.0"):

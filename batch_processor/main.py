@@ -4,45 +4,9 @@ import psycopg2
 import os
 from datetime import datetime
 import logging # For better logging
-from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway, Histogram
 from batch_processor.job import BatchPredictionJob
 from batch_processor.monitoring import logger, push_metrics_to_gateway, record_error, BATCH_JOB_LAST_SUCCESS_TIMESTAMP, BATCH_JOB_DURATION_SECONDS
 import sys
-
-# --- Prometheus Metrics Setup --- #
-PROMETHEUS_PUSHGATEWAY = os.getenv("PROMETHEUS_PUSHGATEWAY", "pushgateway:9091")
-JOB_NAME = "batch_churn_prediction"
-
-registry = CollectorRegistry()
-
-# Define metrics
-# Using a generic `batch_job_last_success_timestamp` which is more standard for Pushgateway
-batch_job_last_success_timestamp = Gauge(
-    "batch_job_last_success_timestamp_seconds", 
-    "Timestamp of the last successful batch job completion", 
-    registry=registry
-)
-batch_job_duration_seconds = Histogram(
-    "batch_job_duration_seconds", 
-    "Duration of the batch job in seconds", 
-    registry=registry
-)
-rows_processed_total = Counter(
-    "batch_job_rows_processed_total", 
-    "Total number of rows processed by the batch job", 
-    registry=registry
-)
-predictions_made_total = Counter(
-    "batch_job_predictions_made_total", 
-    "Total number of predictions made", 
-    registry=registry
-)
-errors_total = Counter(
-    "batch_job_errors_total", 
-    "Total number of errors encountered during the batch job", 
-    ["error_type"], # Label to categorize errors
-    registry=registry
-)
 
 # --- Logging Setup --- #
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -55,14 +19,6 @@ INPUT_CSV_FILES_STR = os.getenv("INPUT_CSV_FILES", "database_input.csv,database_
 INPUT_CSV_FILES = [f.strip() for f in INPUT_CSV_FILES_STR.split(',') if f.strip()]
 
 # --- Helper Functions --- #
-def push_metrics():
-    try:
-        push_to_gateway(PROMETHEUS_PUSHGATEWAY, job=JOB_NAME, registry=registry)
-        logger.info(f"Successfully pushed metrics to Pushgateway at {PROMETHEUS_PUSHGATEWAY}")
-    except Exception as e:
-        logger.error(f"Could not push metrics to Pushgateway: {e}")
-        errors_total.labels(error_type="prometheus_push").inc()
-
 def get_db_connection():
     """Establishes a connection to the PostgreSQL database."""
     try:
@@ -71,7 +27,6 @@ def get_db_connection():
         return conn
     except Exception as e:
         logger.error(f"Error connecting to database: {e}")
-        errors_total.labels(error_type="db_connection").inc()
         return None
 
 def create_tables_if_not_exist(conn):
@@ -129,7 +84,6 @@ def create_tables_if_not_exist(conn):
         logger.info("Tables checked/created successfully.")
     except Exception as e:
         logger.error(f"Error creating tables: {e}")
-        errors_total.labels(error_type="db_schema_creation").inc()
         conn.rollback()
     finally:
         cursor.close()
@@ -146,14 +100,12 @@ def load_csv_to_db(conn, csv_filepath):
             df = pd.read_csv(csv_filepath)
         except FileNotFoundError:
             logger.error(f"CSV file not found at {csv_filepath}. Skipping.")
-            errors_total.labels(error_type="csv_not_found").inc()
             return 0, 0, 0, 0 # inserted, skipped, missing_id, failed_conversion
         except pd.errors.EmptyDataError:
             logger.warning(f"CSV file {csv_filepath} is empty. Skipping.")
             return 0, 0, 0, 0
         except Exception as e:
             logger.error(f"Failed to read CSV {csv_filepath}: {e}")
-            errors_total.labels(error_type="csv_read_error").inc()
             return 0, 0, 0, 0
 
         df.rename(columns=lambda x: x.strip(), inplace=True)
@@ -162,7 +114,6 @@ def load_csv_to_db(conn, csv_filepath):
 
         if 'customerID' not in df.columns:
             logger.critical(f"Critical Error: 'customerID' column not found in {csv_filepath}. Cannot process this file.")
-            errors_total.labels(error_type="csv_missing_customerid_column").inc()
             return 0, 0, 0, 0
 
         for index, row in df.iterrows():
@@ -234,21 +185,16 @@ def load_csv_to_db(conn, csv_filepath):
             except psycopg2.Error as db_err:
                 logger.error(f"Database error inserting row {index+2} (customerID: {customer_id}) from {csv_filepath}: {db_err}")
                 conn.rollback() 
-                errors_total.labels(error_type="db_insert").inc()
             except Exception as e:
                 logger.error(f"Generic error inserting row {index+2} (customerID: {customer_id}) from {csv_filepath}: {e}")
                 conn.rollback()
-                errors_total.labels(error_type="data_insert_conversion").inc()
         conn.commit()
         logger.info(f"From {csv_filepath}: Loaded {rows_inserted_count} new rows. Skipped {rows_skipped_duplicates_count} duplicates. Skipped {rows_with_missing_customerid_count} for missing ID. Failed conversion for {rows_failed_conversion_count} TotalCharges.")
         return rows_inserted_count, rows_skipped_duplicates_count, rows_with_missing_customerid_count, rows_failed_conversion_count
     except Exception as e:
         logger.error(f"Critical error during CSV loading for {csv_filepath}: {e}")
         conn.rollback()
-        errors_total.labels(error_type="csv_processing_critical").inc()
         return 0, 0, 0, 0
-    finally:
-        cursor.close()
 
 def preprocess_data_from_df(df):
     """Preprocesses the DataFrame for the model based on Jupyter notebook logic."""
@@ -396,114 +342,6 @@ def preprocess_data_from_db(conn):
     except Exception as e:
         print(f"Error in preprocess_data_from_db: {e}")
         return None, None
-
-# --- Main Batch Processing Logic --- #
-def run_batch_job():
-    logger.info(f"Batch job started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    start_time = datetime.now()
-
-    conn = get_db_connection()
-    if not conn:
-        logger.critical("Aborting batch job: Database connection failed.")
-        errors_total.labels(error_type="db_connection_initial").inc()
-        push_metrics() # Push whatever metrics we have, like the error
-        return
-
-    create_tables_if_not_exist(conn)
-
-    # 1. Load new data from CSVs into the database
-    total_new_rows_loaded_from_csv = 0
-    total_skipped_duplicates = 0
-    total_missing_ids = 0
-    total_failed_conversions = 0
-
-    for csv_file in INPUT_CSV_FILES:
-        if not os.path.exists(csv_file):
-            logger.warning(f"Input CSV file {csv_file} not found. Skipping.")
-            errors_total.labels(error_type="csv_file_missing").inc()
-            continue
-        try:
-            inserted, skipped, missing, failed_conv = load_csv_to_db(conn, csv_file)
-            total_new_rows_loaded_from_csv += inserted
-            total_skipped_duplicates += skipped
-            total_missing_ids += missing
-            total_failed_conversions += failed_conv
-        except Exception as e:
-            logger.error(f"Critical error loading CSV {csv_file}: {e}")
-            errors_total.labels(error_type="csv_load_critical").inc()
-    
-    logger.info(f"Total new rows loaded from all CSVs: {total_new_rows_loaded_from_csv}")
-    if total_missing_ids > 0:
-        logger.warning(f"Total rows skipped due to missing customerID: {total_missing_ids}")
-        # ALERT: Data quality issue - missing customerIDs
-    if total_failed_conversions > 0:
-        logger.warning(f"Total rows with TotalCharges conversion issues: {total_failed_conversions}")
-        # ALERT: Data quality issue - TotalCharges conversion
-
-    # 2. Retrieve data for prediction & Preprocess
-    processed_df, customer_ids = preprocess_data_from_db(conn)
-
-    if processed_df is None or processed_df.empty:
-        logger.info("No data available or retrieved for processing after preprocessing step. Exiting batch job.")
-        # This might be normal if all data is processed, or an issue if new data was expected.
-        # Consider if an alert is needed based on whether new CSV data was loaded.
-        if total_new_rows_loaded_from_csv > 0:
-            logger.warning("New CSV data was loaded, but no data was available for processing. Check preprocessing logic or DB query.")
-            errors_total.labels(error_type="data_discrepancy_after_load").inc()
-        conn.close()
-        # Update duration and success timestamp before exiting, even if no predictions
-        job_duration = (datetime.now() - start_time).total_seconds()
-        batch_job_duration_seconds.observe(job_duration)
-        batch_job_last_success_timestamp.set_to_current_time() # Marking as success if it ran through, even w/o preds
-        push_metrics()
-        return
-    
-    rows_processed_total.inc(len(processed_df))
-
-    # 3. Load Model and Predict
-    model = None
-    try:
-        model = joblib.load(MODEL_PATH)
-        logger.info("Model loaded successfully.")
-    except FileNotFoundError:
-        logger.critical(f"CRITICAL Error: Model file not found at {MODEL_PATH}. Batch job cannot proceed.")
-        errors_total.labels(error_type="model_file_missing").inc()
-        conn.close()
-        push_metrics()
-        return
-    except Exception as e:
-        logger.critical(f"CRITICAL Error loading model: {e}. Batch job cannot proceed.")
-        errors_total.labels(error_type="model_load_critical").inc()
-        conn.close()
-        push_metrics()
-        return
-
-    try:
-        predictions = model.predict(processed_df)
-        probabilities = model.predict_proba(processed_df)
-        predictions_made_total.inc(len(predictions))
-        logger.info(f"Predictions made for {len(predictions)} customers.")
-    except Exception as e:
-        logger.error(f"Error during model prediction: {e}")
-        errors_total.labels(error_type="prediction_runtime").inc()
-        conn.close()
-        push_metrics()
-        return
-
-    # 4. Persist Results
-    try:
-        persist_predictions(conn, customer_ids, processed_df, predictions, probabilities, model_version="batch_v1.0")
-    except Exception as e:
-        logger.error(f"Error persisting predictions: {e}")
-        errors_total.labels(error_type="db_persist_predictions").inc()
-        # Continue to close connection and push metrics
-    
-    conn.close()
-    job_duration = (datetime.now() - start_time).total_seconds()
-    batch_job_duration_seconds.observe(job_duration)
-    batch_job_last_success_timestamp.set_to_current_time()
-    logger.info(f"Batch job finished successfully at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}. Duration: {job_duration:.2f}s")
-    push_metrics()
 
 if __name__ == "__main__":
     logger.info("Starting batch processor main script...")

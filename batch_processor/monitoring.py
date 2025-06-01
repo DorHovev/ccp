@@ -83,9 +83,37 @@ PREDICTIONS_PERSISTED_TOTAL = Counter(
     registry=METRICS_REGISTRY
 )
 
+# --- New Metrics --- #
+JOB_START_TIMESTAMP = Gauge(
+    "batch_job_start_timestamp_seconds",
+    "Timestamp of the batch job start (for scheduling analysis)",
+    registry=METRICS_REGISTRY
+)
+FILES_PROCESSED_TOTAL = Gauge(
+    "batch_job_files_processed_total",
+    "Number of input files processed in the current batch job run",
+    registry=METRICS_REGISTRY
+)
+ROWS_PROCESSED_PER_FILE = Gauge(
+    "batch_job_rows_processed_per_file",
+    "Number of rows processed per input file in the current batch job run",
+    ["csv_file"],
+    registry=METRICS_REGISTRY
+)
+CUSTOM_ERROR_TYPE_TOTAL = Counter(
+    "batch_job_custom_error_type_total",
+    "Custom error types encountered during the batch job",
+    ["custom_error_type"],
+    registry=METRICS_REGISTRY
+)
+
 # --- Push Metrics Function --- #
 def push_metrics_to_gateway():
-    """Pushes all registered metrics to the configured Pushgateway."""
+    """
+    Pushes all registered metrics to the configured Pushgateway.
+    Note: batch_job_last_success_timestamp_seconds must be set to a real Unix timestamp (seconds since epoch)
+    for Grafana to display a correct date. If this metric is 0, Grafana will show 1970-01-01.
+    """
     try:
         push_to_gateway(
             config.PROMETHEUS_PUSHGATEWAY, 
