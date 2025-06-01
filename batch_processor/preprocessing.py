@@ -1,6 +1,6 @@
 import pandas as pd
-from . import config
-from batch_processor.monitoring import logger, record_error, DATA_CONVERSION_ERRORS_TOTAL
+import config
+from monitoring import logger, record_error, DATA_CONVERSION_ERRORS_TOTAL
 
 class DataPreprocessor:
     def __init__(self):

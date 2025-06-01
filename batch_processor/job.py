@@ -1,7 +1,7 @@
 from datetime import datetime
 import time # For job duration calculation
 import os
-from . import config
+import config
 from database import DatabaseManager
 from preprocessing import DataPreprocessor
 from prediction import ModelPredictor

@@ -17,8 +17,7 @@ services:
       - db
     environment:
       - DATABASE_URL=postgresql://user:pass@db:5432/mlops_db
-    # volumes:
-    #   - ./churn_model.pickle:/app/churn_model.pickle
+
 
   api_service:
     build: ./api_service
