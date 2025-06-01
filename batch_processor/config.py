@@ -11,7 +11,10 @@ DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "pass")
 DB_HOST = os.getenv("DB_HOST", "db") # Service name in Docker Compose
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("POSTGRES_DB", "mlops_db")
-DATABASE_URL = f"postgresql://user:pass@localhost:5432/mlops_db"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
 
 # --- Model and Data Paths --- #
 MODEL_PATH = os.getenv("MODEL_PATH", "./churn_model.pickle")

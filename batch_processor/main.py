@@ -7,6 +7,7 @@ import logging # For better logging
 from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway, Histogram
 from job import BatchPredictionJob
 from monitoring import logger, push_metrics_to_gateway, record_error, BATCH_JOB_LAST_SUCCESS_TIMESTAMP, BATCH_JOB_DURATION_SECONDS
+import sys
 
 # --- Prometheus Metrics Setup --- #
 PROMETHEUS_PUSHGATEWAY = os.getenv("PROMETHEUS_PUSHGATEWAY", "pushgateway:9091")
@@ -506,9 +507,14 @@ def run_batch_job():
 
 if __name__ == "__main__":
     logger.info("Starting batch processor main script...")
+    # Check for --reprocess-all argument
+    reprocess_all = False
+    if "--reprocess-all" in sys.argv:
+        reprocess_all = True
+        logger.info("Reprocessing ALL data in the database (ignoring churn_predictions table).")
     job = BatchPredictionJob()
     try:
-        job.run()
+        job.run(reprocess_all=reprocess_all)
     except Exception as e:
         # This is a top-level catch for unexpected errors during job.run() setup or critical failures
         logger.critical(f"Critical failure in main execution block: {e}", exc_info=True)

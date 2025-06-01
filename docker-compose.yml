@@ -16,12 +16,14 @@ services:
     depends_on:
       - db
     environment:
-      # Use 'db' as hostname for Docker network; use 'localhost' if running outside Docker
-      - DATABASE_URL=postgresql://user:pass@localhost:5432/mlops_db
-      # Use 'pushgateway' as hostname for Docker network; use 'localhost' if running outside Docker
-      - PROMETHEUS_PUSHGATEWAY=pushgateway:9091
+      # Use Docker Compose variable substitution for flexibility
+      # Default to Docker service hostnames, but allow override from host
+      - DATABASE_URL=${DATABASE_URL:-postgresql://user:pass@db:5432/mlops_db}
+      - PROMETHEUS_PUSHGATEWAY=${PROMETHEUS_PUSHGATEWAY:-pushgateway:9091}
     volumes:
        - ./batch_processor/input_data:/app/input_data
+    # Run with --reprocess-all to reprocess all data by default
+    command: ["python", "main.py", "--reprocess-all"]
 
   api_service:
     build: ./api_service
@@ -30,8 +32,8 @@ services:
     depends_on:
       - db
     environment:
-      - DATABASE_URL=postgresql://user:pass@localhost:5432/mlops_db
-      - PROMETHEUS_PUSHGATEWAY=pushgateway:9091
+      - DATABASE_URL=${DATABASE_URL:-postgresql://user:pass@db:5432/mlops_db}
+      - PROMETHEUS_PUSHGATEWAY=${PROMETHEUS_PUSHGATEWAY:-pushgateway:9091}
     volumes:
       - ./churn_model.pickle:/app/churn_model.pickle
 

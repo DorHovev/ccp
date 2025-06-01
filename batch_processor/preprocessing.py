@@ -40,19 +40,26 @@ class DataPreprocessor:
         return df
 
     def _handle_phone_service(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Handle both 'phoneservice' and 'PhoneService'
+        col = None
         if 'phoneservice' in df.columns:
-            df['phoneservice'] = df['phoneservice'].fillna('No')
-            # Log values not in map before mapping
-            unknown_values = df[~df['phoneservice'].isin(['Yes', 'No'])]['phoneservice'].unique()
+            col = 'phoneservice'
+        elif 'PhoneService' in df.columns:
+            col = 'PhoneService'
+        if col:
+            df[col] = df[col].fillna('No')
+            unknown_values = df[~df[col].isin(['Yes', 'No'])][col].unique()
             if len(unknown_values) > 0:
-                logger.warning(f"Unknown values found in phoneservice: {unknown_values}. These will become 0.")
-                record_error("preprocessing_unknown_value", f"phoneservice contained: {unknown_values}")
-            df['phoneservice'] = df['phoneservice'].map({'Yes': 1, 'No': 0}).fillna(0)
-            logger.info("'phoneservice' processed. Mapped Yes/No to 1/0, NaNs/Unknowns to 0.")
+                logger.warning(f"Unknown values found in {col}: {unknown_values}. These will become 0.")
+                record_error("preprocessing_unknown_value", f"{col} contained: {unknown_values}")
+            df['PhoneService'] = df[col].map({'Yes': 1, 'No': 0}).fillna(0).astype(int)
+            if col != 'PhoneService':
+                df.drop(columns=[col], inplace=True)
+            logger.info(f"'{col}' processed. Mapped Yes/No to 1/0, NaNs/Unknowns to 0.")
         else:
-            logger.warning("'phoneservice' column not found. Creating with default 0 (No).")
-            df['phoneservice'] = 0
-            record_error("preprocessing_missing_column", "phoneservice column absent, filled with 0")
+            logger.warning("'PhoneService' column not found. Creating with default 0 (No).")
+            df['PhoneService'] = 0
+            record_error("preprocessing_missing_column", "PhoneService column absent, filled with 0")
         return df
 
     def _handle_contract(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -139,6 +146,8 @@ class DataPreprocessor:
         processed_df = df.copy()
         processed_df = self._map_input_columns(processed_df)
 
+
+        # Always apply all handlers to ensure correct types
         processed_df = self._handle_total_charges(processed_df)
         processed_df = self._handle_phone_service(processed_df)
         processed_df = self._handle_contract(processed_df) # This adds the one-hot encoded columns
@@ -151,4 +160,12 @@ class DataPreprocessor:
         processed_df = self._ensure_model_columns(processed_df)
         
         logger.info(f"Preprocessing complete. Output DataFrame shape: {processed_df.shape}, Columns: {processed_df.columns.tolist()}")
+        logger.info(f"Preprocessing output DataFrame head:\n{processed_df.head()}")
+        logger.info(f"Preprocessing output DataFrame dtypes:\n{processed_df.dtypes}")
+
+        # Final NaN check and fill
+        if processed_df.isnull().any().any():
+            logger.warning("NaN values detected in processed DataFrame. Filling with 0.")
+            logger.warning(f"NaN locations:\n{processed_df.isnull().sum()}")
+            processed_df = processed_df.fillna(0)
         return processed_df 

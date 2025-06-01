@@ -18,7 +18,7 @@ class BatchPredictionJob:
         self.predictor = ModelPredictor()
         self.start_time = None
 
-    def _load_and_prepare_data(self):
+    def _load_and_prepare_data(self, reprocess_all=False):
         """Loads data from CSVs, saves to DB, then fetches and preprocesses for prediction."""
         total_new_rows_loaded = 0
         
@@ -40,8 +40,8 @@ class BatchPredictionJob:
         
         logger.info(f"Total new rows loaded from all CSVs: {total_new_rows_loaded}")
 
-        # Fetch and preprocess data that hasn't been predicted yet
-        unprocessed_df = self.db_manager.fetch_data_for_preprocessing()
+        # Fetch and preprocess data; pass reprocess_all flag
+        unprocessed_df = self.db_manager.fetch_data_for_preprocessing(reprocess_all=reprocess_all)
 
         if unprocessed_df is None or unprocessed_df.empty:
             logger.info("No new or unprocessed data found in the database for prediction.")
@@ -67,13 +67,12 @@ class BatchPredictionJob:
 
         return processed_df, customer_ids
 
-    def run(self):
+    def run(self, reprocess_all=False):
         self.start_time = datetime.now()
         logger.info(f"Batch prediction job started at {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        
         processed_df = None # Initialize to handle early exit
         try:
-            processed_df, customer_ids = self._load_and_prepare_data()
+            processed_df, customer_ids = self._load_and_prepare_data(reprocess_all=reprocess_all)
 
             if processed_df is None or processed_df.empty or not customer_ids:
                 logger.info("No data to predict after loading and preprocessing. Job will conclude.")

@@ -1,6 +1,8 @@
 import pandas as pd
-import os
 import config
+
+import os
+
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float, TIMESTAMP, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from monitoring import (
@@ -156,18 +158,22 @@ class DatabaseManager:
 
         return rows_inserted, rows_skipped_duplicates, rows_missing_id, rows_conversion_error
 
-    def fetch_data_for_preprocessing(self):
+    def fetch_data_for_preprocessing(self, reprocess_all=False):
         try:
             with self.engine.connect() as conn:
-                query = text(f'''
-                    SELECT customerid, totalcharges, contract, phoneservice, tenure
-                    FROM customer_data
-                    WHERE NOT EXISTS (
-                        SELECT 1 FROM churn_predictions WHERE churn_predictions.customerid = customer_data.customerid
-                    )
-                ''')
+                if reprocess_all:
+                    query = text('SELECT customerid, totalcharges, contract, phoneservice, tenure FROM customer_data')
+                    logger.info("Reprocessing ALL data from customer_data for prediction.")
+                else:
+                    query = text('''
+                        SELECT customerid, totalcharges, contract, phoneservice, tenure
+                        FROM customer_data
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM churn_predictions WHERE churn_predictions.customerid = customer_data.customerid
+                        )
+                    ''')
                 df = pd.read_sql_query(query, conn)
-                logger.info(f"Fetched {len(df)} new rows from database for preprocessing.")
+                logger.info(f"Fetched {len(df)} rows from database for preprocessing.")
                 if not df.empty:
                     ROWS_FETCHED_FOR_PREPROCESSING_TOTAL.set(len(df))
                 else:

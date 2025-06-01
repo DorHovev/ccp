@@ -45,14 +45,5 @@ jobs:
         run: |
           until pg_isready -h localhost -p 5432; do sleep 1; done
 
-      - name: Run batch processor for database_input.csv
-        run: |
-          python batch_processor/main.py --input batch_processor/database_input.csv
-
-      - name: Run batch processor for database_input1.csv
-        run: |
-          python batch_processor/main.py --input batch_processor/database_input1.csv
-
-      - name: Run batch processor for database_input2.csv
-        run: |
-          python batch_processor/main.py --input batch_processor/database_input2.csv 
+      - name: Run batch processor and reprocess all data
+        run: python batch_processor/main.py --reprocess-all
