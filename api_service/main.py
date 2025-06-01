@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel, field_validator, ValidationInfo
+from pydantic import BaseModel, field_validator, ValidationInfo, model_validator
 import joblib
 import pandas as pd
 import os
@@ -93,6 +93,18 @@ class PredictionFeatures(BaseModel):
         if v < 0:
             raise ValueError('tenure must be non-negative')
         return v
+
+    @classmethod
+    def validate_contract_one_hot(cls, values):
+        # Ensure exactly one of the contract types is 1
+        # In Pydantic v2, values is a model instance, not a dict
+        contract_fields = [values.Month_to_month, values.One_year, values.Two_year]
+        if contract_fields.count(1) != 1:
+            raise ValueError('Exactly one of Month_to_month, One_year, or Two_year must be 1 (one-hot encoded)')
+        return values
+
+    # Register as a root validator
+    _validate_contract_one_hot = model_validator(mode="after")(validate_contract_one_hot)
 
 # --- Model Loading --- #
 MODEL_PATH = os.getenv("MODEL_PATH", "churn_model.pickle")
@@ -191,9 +203,18 @@ async def predict_churn(input_data: PredictionFeatures):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     DATA_VALIDATION_FAILURES.labels(validation_type="pydantic").inc()
+    # Convert all error messages to strings to avoid non-serializable objects
+    errors = exc.errors()
+    for err in errors:
+        if 'msg' in err and not isinstance(err['msg'], str):
+            err['msg'] = str(err['msg'])
+        if 'ctx' in err and err['ctx']:
+            for k, v in err['ctx'].items():
+                if not isinstance(v, str):
+                    err['ctx'][k] = str(v)
     return JSONResponse(
         status_code=422,
-        content={"detail": exc.errors(), "body": exc.body},
+        content={"detail": errors, "body": exc.body},
     )
 
 # To run this app (outside Docker for testing):

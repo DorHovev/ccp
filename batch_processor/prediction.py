@@ -1,7 +1,7 @@
 import joblib
 import pandas as pd
-import config
-from monitoring import logger, record_error, PREDICTIONS_MADE_TOTAL
+from batch_processor import config
+from batch_processor.monitoring import logger, record_error, PREDICTIONS_MADE_TOTAL
 
 class ModelPredictor:
     def __init__(self, model_path=None):

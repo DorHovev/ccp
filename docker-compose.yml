@@ -12,7 +12,9 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   batch_processor:
-    build: ./batch_processor
+    build:
+      context: .
+      dockerfile: batch_processor/Dockerfile
     depends_on:
       - db
     environment:
@@ -23,7 +25,7 @@ services:
     volumes:
        - ./batch_processor/input_data:/app/input_data
     # Run with --reprocess-all to reprocess all data by default
-    command: ["python", "main.py", "--reprocess-all"]
+    command: ["python", "-m", "batch_processor.main", "--reprocess-all"]
 
   api_service:
     build: ./api_service

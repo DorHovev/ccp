@@ -5,8 +5,8 @@ import os
 from datetime import datetime
 import logging # For better logging
 from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway, Histogram
-from job import BatchPredictionJob
-from monitoring import logger, push_metrics_to_gateway, record_error, BATCH_JOB_LAST_SUCCESS_TIMESTAMP, BATCH_JOB_DURATION_SECONDS
+from batch_processor.job import BatchPredictionJob
+from batch_processor.monitoring import logger, push_metrics_to_gateway, record_error, BATCH_JOB_LAST_SUCCESS_TIMESTAMP, BATCH_JOB_DURATION_SECONDS
 import sys
 
 # --- Prometheus Metrics Setup --- #

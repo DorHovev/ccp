@@ -1,11 +1,11 @@
 from datetime import datetime
 import time # For job duration calculation
 import os
-import config
-from database import DatabaseManager
-from preprocessing import DataPreprocessor
-from prediction import ModelPredictor
-from monitoring import (
+from batch_processor import config
+from batch_processor.   database import DatabaseManager
+from batch_processor.preprocessing import DataPreprocessor
+from batch_processor.prediction import ModelPredictor
+from batch_processor.monitoring import (
     logger, push_metrics_to_gateway, record_error,
     BATCH_JOB_LAST_SUCCESS_TIMESTAMP, BATCH_JOB_DURATION_SECONDS,
     ROWS_AFTER_PREPROCESSING_TOTAL
