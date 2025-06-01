@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 # --- General Configuration ---
 APP_NAME = "BatchChurnPrediction"
@@ -10,12 +11,14 @@ DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "pass")
 DB_HOST = os.getenv("DB_HOST", "db") # Service name in Docker Compose
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("POSTGRES_DB", "mlops_db")
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = f"postgresql://user:pass@localhost:5432/mlops_db"
 
 # --- Model and Data Paths --- #
 MODEL_PATH = os.getenv("MODEL_PATH", "./churn_model.pickle")
-INPUT_CSV_FILES_STR = os.getenv("INPUT_CSV_FILES", "database_input.csv,database_input.csv,database_input2.csv")
-INPUT_CSV_FILES = [f.strip() for f in INPUT_CSV_FILES_STR.split(',') if f.strip()]
+
+# Use a folder for input CSVs
+INPUT_CSV_FOLDER = os.getenv("INPUT_CSV_FOLDER", "input_data")
+INPUT_CSV_FILES = [str(p) for p in Path(INPUT_CSV_FOLDER).rglob("*.csv")]
 
 # --- Monitoring Configuration --- #
 PROMETHEUS_PUSHGATEWAY = os.getenv("PROMETHEUS_PUSHGATEWAY", "pushgateway:9091")

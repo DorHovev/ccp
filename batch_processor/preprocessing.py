@@ -8,6 +8,18 @@ class DataPreprocessor:
         self.tenure_fill = config.TENURE_DEFAULT_MEAN_FILL 
         self.model_columns = config.MODEL_COLUMNS_ORDERED
 
+    def _map_input_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Map/rename input DataFrame columns to the model's expected names."""
+        column_mapping = {
+            'totalcharges': 'TotalCharges',
+            'phoneservice': 'PhoneService',
+            'contract': 'Contract',
+            # Add more mappings as needed
+        }
+        # Only rename columns that exist in the DataFrame
+        columns_to_rename = {k: v for k, v in column_mapping.items() if k in df.columns}
+        return df.rename(columns=columns_to_rename)
+
     def _handle_total_charges(self, df: pd.DataFrame) -> pd.DataFrame:
         if 'totalcharges' in df.columns:
             # Convert to numeric, coercing errors. This turns unconvertible strings into NaN.
@@ -125,6 +137,7 @@ class DataPreprocessor:
             return pd.DataFrame(columns=self.model_columns) # Return empty df with expected columns
 
         processed_df = df.copy()
+        processed_df = self._map_input_columns(processed_df)
 
         processed_df = self._handle_total_charges(processed_df)
         processed_df = self._handle_phone_service(processed_df)
