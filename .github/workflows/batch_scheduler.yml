@@ -46,4 +46,4 @@ jobs:
           until pg_isready -h localhost -p 5432; do sleep 1; done
 
       - name: Run batch processor and reprocess all data
-        run: python -m batch_processor.main.py --reprocess-all
+        run: python -m batch_processor.main --reprocess-all
