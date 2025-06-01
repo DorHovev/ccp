@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from batch_processor import config
+from . import config
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Float, TIMESTAMP, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from batch_processor.monitoring import (
