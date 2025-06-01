@@ -1,5 +1,5 @@
 import pandas as pd
-from batch_processor import config
+from . import config
 from batch_processor.monitoring import logger, record_error, DATA_CONVERSION_ERRORS_TOTAL
 
 class DataPreprocessor:
