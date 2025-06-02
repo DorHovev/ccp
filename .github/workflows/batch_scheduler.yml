@@ -8,7 +8,7 @@ on:
 
 jobs:
   batch-process:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     services:
       postgres:
@@ -56,6 +56,6 @@ jobs:
       - name: List files in input_data (debug)
         run: |
           ls -l input_data || echo "input_data directory not found"
-
+          
       - name: Run batch processor and reprocess all data
         run: python -m batch_processor.main --reprocess-all
