@@ -10,4 +10,11 @@ scrape_configs:
       - targets: ['pushgateway:9091']
   - job_name: 'pushgateway' # To scrape Pushgateway itself (optional, for meta-monitoring)
     static_configs:
-      - targets: ['pushgateway:9091'] 
+      - targets: ['pushgateway:9091']
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100'] 

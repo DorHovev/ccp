@@ -10,6 +10,7 @@ from batch_processor.monitoring import (
     BATCH_JOB_LAST_SUCCESS_TIMESTAMP, BATCH_JOB_DURATION_SECONDS,
     ROWS_AFTER_PREPROCESSING_TOTAL, JOB_START_TIMESTAMP, FILES_PROCESSED_TOTAL, ROWS_PROCESSED_PER_FILE, CUSTOM_ERROR_TYPE_TOTAL
 )
+import glob
 
 class BatchPredictionJob:
     def __init__(self):
@@ -20,6 +21,8 @@ class BatchPredictionJob:
 
     def _load_and_prepare_data(self, reprocess_all=False):
         """Loads data from CSVs, saves to DB, then fetches and preprocesses for prediction."""
+        logger.info(f"DEBUG: config.INPUT_CSV_FILES = {config.INPUT_CSV_FILES}")
+        logger.info(f"DEBUG: Files in input_data/ = {glob.glob('input_data/*.csv')}")
         total_new_rows_loaded = 0
         files_processed = 0
         rows_per_file = {}

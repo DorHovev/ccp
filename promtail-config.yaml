@@ -23,3 +23,17 @@ scrape_configs:
         labels:
           job: docker
           __path__: /var/lib/docker/containers/*/*.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<docker_ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[.,]\d+) [\-|\|] (?P<level>[A-Z]+) +[\-|\|] (?P<module>[\w\.]+):(?P<function>\w+):(?P<line>\d+) [\-|\|] (?P<msg>.*)$'
+      - json:
+          expressions:
+            level: level
+            module: module
+            func: func
+      - labels:
+          level:
+          module:
+          function:
+      - output:
+          source: msg

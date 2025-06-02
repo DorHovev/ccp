@@ -8,7 +8,7 @@ on:
 
 jobs:
   batch-process:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     services:
       postgres:
@@ -53,6 +53,9 @@ jobs:
         run: |
           mkdir -p input_data
           cp batch_processor/input_data/*.csv input_data/ || echo "No CSVs to copy"
+      - name: List files in input_data (debug)
+        run: |
+          ls -l input_data || echo "input_data directory not found"
 
       - name: Run batch processor and reprocess all data
         run: python -m batch_processor.main --reprocess-all
