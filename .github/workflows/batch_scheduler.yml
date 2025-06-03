@@ -20,14 +20,5 @@ jobs:
       - name: Change to repo directory
         run: cd ${{ github.workspace }}
 
-      - name: List input CSV files (debug)
-        run: |
-          if (Test-Path batch_processor/input_data/*.csv) {
-            Get-ChildItem batch_processor/input_data/*.csv | Format-List
-          } else {
-            Write-Host "No CSV files found"
-          }
-
-
       - name: Build and start batch processor
         run: docker-compose up --build --abort-on-container-exit batch_processor
