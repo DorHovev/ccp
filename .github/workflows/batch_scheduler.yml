@@ -22,7 +22,7 @@ jobs:
 
       - name: List input CSV files (debug)
         run: |
-          ls -l batch_processor/input_data/*.csv || echo "No CSV files found"
+          ls -l batch_processor/input_data/*.csv || (echo "No CSV files found" && true)
 
 
       - name: Build and start batch processor
