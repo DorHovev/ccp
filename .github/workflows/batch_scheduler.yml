@@ -12,7 +12,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://user:pass@db:5432/mlops_db
-      PROMETHEUS_PUSHGATEWAY: localhost:9091
+      PROMETHEUS_PUSHGATEWAY: pushgateway:9091
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
