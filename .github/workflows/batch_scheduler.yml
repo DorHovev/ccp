@@ -11,7 +11,7 @@ jobs:
     runs-on: self-hosted
 
     env:
-      DATABASE_URL: postgresql://user:pass@localhost:5432/mlops_db
+      DATABASE_URL: postgresql://user:pass@db:5432/mlops_db
       PROMETHEUS_PUSHGATEWAY: localhost:9091
     steps:
       - name: Checkout code
