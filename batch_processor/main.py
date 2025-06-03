@@ -364,11 +364,3 @@ if __name__ == "__main__":
         push_metrics_to_gateway()
     logger.info("Batch processor main script finished.")
 
-    # --- TODO: Add Monitoring --- #
-    # - Emit metrics (e.g., number of rows processed, errors, time taken)
-    #   to Prometheus (e.g., via a Pushgateway or by exposing a metrics endpoint if this were a long-running service)
-    # - Implement logging to a centralized system
-    # --- TODO: Add Alerting --- #
-    # - Set up alerts for job failure, data quality issues, etc.
-    # --- TODO: Error Handling & Data Quality --- #
-    # - More robust checks for missing data, null columns, schema mismatches. 

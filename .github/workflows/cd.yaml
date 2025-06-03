@@ -1,0 +1,38 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - publish
+    tags:
+      - 'v*'           # e.g., v1.2.0
+      - 'model-v*'     # e.g., model-v1.2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # Or self-hosted if you want to deploy to your own server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push Docker images
+        run: |
+          docker-compose build
+          # Optionally: docker-compose push (if using a remote registry)
+
+      # If deploying to a remote server:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /path/to/your/project
+            git pull
+            docker-compose pull
+            docker-compose up -d --remove-orphans
