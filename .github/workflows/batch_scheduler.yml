@@ -17,18 +17,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Build batch processor Docker image
-        run: docker build -t batch-processor .
+      - name: Change to repo directory
+        run: cd ${{ github.workspace }}
 
       - name: List input CSV files (debug)
         run: |
           ls -l batch_processor/input_data/*.csv || echo "No CSV files found"
 
-      - name: Run batch processor container
-        run: |
-          docker run --rm \
-            -e DATABASE_URL="$DATABASE_URL" \
-            -e PROMETHEUS_PUSHGATEWAY="$PROMETHEUS_PUSHGATEWAY" \
-            -v $(pwd)/batch_processor/input_data:/app/input_data \
-            -v $(pwd)/churn_model.pickle:/app/churn_model.pickle \
-            batch-processor python -m batch_processor.main --reprocess-all
+
+      - name: Build and start batch processor
+        run: docker-compose up --build --abort-on-container-exit batch_processor
