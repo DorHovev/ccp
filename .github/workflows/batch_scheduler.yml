@@ -17,22 +17,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: |
-          pip install -r batch_processor/requirements.txt
+      - name: Build batch processor Docker image
+        run: docker build -t batch-processor .
 
       - name: List input CSV files (debug)
         run: |
           ls -l batch_processor/input_data/*.csv || echo "No CSV files found"
 
-      - name: Copy input CSVs to working directory (if needed)
+      - name: Run batch processor container
         run: |
-          mkdir -p input_data
-          cp batch_processor/input_data/*.csv input_data/ || echo "No CSVs to copy"
-      
-      - name: List files in input_data (debug)
-        run: |
-          ls -l input_data || echo "input_data directory not found"
-          
-      - name: Run batch processor and reprocess all data
-        run: python -m batch_processor.main --reprocess-all
+          docker run --rm \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e PROMETHEUS_PUSHGATEWAY="$PROMETHEUS_PUSHGATEWAY" \
+            -v $(pwd)/batch_processor/input_data:/app/input_data \
+            -v $(pwd)/churn_model.pickle:/app/churn_model.pickle \
+            batch-processor python -m batch_processor.main --reprocess-all
