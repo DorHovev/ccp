@@ -22,7 +22,11 @@ jobs:
 
       - name: List input CSV files (debug)
         run: |
-          ls -l batch_processor/input_data/*.csv || (echo "No CSV files found" && true)
+          if (Test-Path batch_processor/input_data/*.csv) {
+            Get-ChildItem batch_processor/input_data/*.csv | Format-List
+          } else {
+            Write-Host "No CSV files found"
+          }
 
 
       - name: Build and start batch processor
