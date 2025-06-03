@@ -10,21 +10,6 @@ jobs:
   batch-process:
     runs-on: self-hosted
 
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: pass
-          POSTGRES_DB: mlops_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     env:
       DATABASE_URL: postgresql://user:pass@localhost:5432/mlops_db
       PROMETHEUS_PUSHGATEWAY: localhost:9091
@@ -41,10 +26,6 @@ jobs:
         run: |
           pip install -r batch_processor/requirements.txt
 
-      - name: Wait for Postgres to be ready
-        run: |
-          until pg_isready -h localhost -p 5432; do sleep 1; done
-
       - name: List input CSV files (debug)
         run: |
           ls -l batch_processor/input_data/*.csv || echo "No CSV files found"
@@ -53,6 +34,7 @@ jobs:
         run: |
           mkdir -p input_data
           cp batch_processor/input_data/*.csv input_data/ || echo "No CSVs to copy"
+      
       - name: List files in input_data (debug)
         run: |
           ls -l input_data || echo "input_data directory not found"
