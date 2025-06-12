@@ -14,29 +14,30 @@ class DataPreprocessor:
             'totalcharges': 'TotalCharges',
             'phoneservice': 'PhoneService',
             'contract': 'Contract',
-            # Add more mappings as needed
+            'tenure': 'tenure',  # This is already correct, but include for clarity
+            # Add any others as needed
         }
         # Only rename columns that exist in the DataFrame
         columns_to_rename = {k: v for k, v in column_mapping.items() if k in df.columns}
         return df.rename(columns=columns_to_rename)
 
     def _handle_total_charges(self, df: pd.DataFrame) -> pd.DataFrame:
-        if 'totalcharges' in df.columns:
+        if 'TotalCharges' in df.columns:
             # Convert to numeric, coercing errors. This turns unconvertible strings into NaN.
-            df['totalcharges'] = pd.to_numeric(df['totalcharges'].astype(str).str.strip(), errors='coerce')
+            df['TotalCharges'] = pd.to_numeric(df['TotalCharges'].astype(str).str.strip(), errors='coerce')
             
             # Log rows where conversion failed before filling NaN
-            failed_conversion_mask = df['totalcharges'].isnull() & df['totalcharges'].notna() # original was notna but failed conversion
+            failed_conversion_mask = df['TotalCharges'].isnull() & df['TotalCharges'].notna() # original was notna but failed conversion
             if failed_conversion_mask.any():
                 logger.warning(f"{failed_conversion_mask.sum()} rows had TotalCharges conversion issues.")
-                DATA_CONVERSION_ERRORS_TOTAL.labels(csv_file='N/A_db_source', column_name='totalcharges').inc(failed_conversion_mask.sum())
+                DATA_CONVERSION_ERRORS_TOTAL.labels(csv_file='N/A_db_source', column_name='TotalCharges').inc(failed_conversion_mask.sum())
 
-            df['totalcharges'] = df['totalcharges'].fillna(self.total_charges_fill)
-            logger.info(f"'totalcharges' processed. Filled NaNs with {self.total_charges_fill}")
+            df['TotalCharges'] = df['TotalCharges'].fillna(self.total_charges_fill)
+            logger.info(f"'TotalCharges' processed. Filled NaNs with {self.total_charges_fill}")
         else:
-            logger.warning("'totalcharges' column not found. Creating with default fill value.")
-            df['totalcharges'] = self.total_charges_fill
-            record_error("preprocessing_missing_column", "totalcharges column absent, filled with default")
+            logger.warning("'TotalCharges' column not found. Creating with default fill value.")
+            df['TotalCharges'] = self.total_charges_fill
+            record_error("preprocessing_missing_column", "TotalCharges column absent, filled with default")
         return df
 
     def _handle_phone_service(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -64,17 +65,17 @@ class DataPreprocessor:
 
     def _handle_contract(self, df: pd.DataFrame) -> pd.DataFrame:
         required_contract_cols = ['Month-to-month', 'One year', 'Two year']
-        if 'contract' in df.columns:
-            null_mask = df['contract'].isnull()
+        if 'Contract' in df.columns:
+            null_mask = df['Contract'].isnull()
             count = null_mask.sum()
             if count > 0:
-                logger.warning(f"Dropping {count} rows due to NaN in 'contract'.")
+                logger.warning(f"Dropping {count} rows due to NaN in 'Contract'.")
                 for idx, row in df[null_mask].iterrows():
-                    logger.error(f"Dropping row {idx} due to missing value in 'contract'")
+                    logger.error(f"Dropping row {idx} due to missing value in 'Contract'")
                     record_error("preprocessing_missing_important_column", f"Row {idx} dropped: missing contract")
                 df = df[~null_mask]
             try:
-                contract_dummies = pd.get_dummies(df['contract'], prefix='contract', dtype=int)
+                contract_dummies = pd.get_dummies(df['Contract'], prefix='contract', dtype=int)
                 df = pd.concat([df, contract_dummies], axis=1)
                 # Rename columns to match config/model's expected feature names
                 df.rename(columns={
@@ -82,15 +83,15 @@ class DataPreprocessor:
                     'contract_One year': 'One year',
                     'contract_Two year': 'Two year'
                 }, inplace=True)
-                logger.info("'contract' one-hot encoded and columns renamed for model compatibility.")
+                logger.info("'Contract' one-hot encoded and columns renamed for model compatibility.")
             except Exception as e:
                 logger.error(f"Error during one-hot encoding of contract: {e}. Filling required columns with 0.")
-                record_error("preprocessing_onehot_error", f"contract column: {e}")
+                record_error("preprocessing_onehot_error", f"Contract column: {e}")
                 for col in required_contract_cols:
                     df[col] = 0 # Fallback
         else:
-            logger.warning("'contract' column not found. Dropping all rows due to missing contract column.")
-            record_error("preprocessing_missing_column", "contract column absent, all rows dropped")
+            logger.warning("'Contract' column not found. Dropping all rows due to missing contract column.")
+            record_error("preprocessing_missing_column", "Contract column absent, all rows dropped")
             return df.iloc[0:0]  # Return empty DataFrame
         # Ensure all required one-hot encoded columns are present
         for col in required_contract_cols:
