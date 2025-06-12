@@ -11,6 +11,9 @@ Customer Churn Pipeline is an end-to-end MLOps solution for predicting customer 
 - **Monitoring:** Prometheus and Grafana dashboards for metrics and system health.
 - **Containerized Deployment:** All components run in isolated Docker containers.
 - **CI/CD: Automated testing, build, and deployment with GitHub Actions.
+
+  <img width="503" alt="image" src="https://github.com/user-attachments/assets/653a440d-c3c3-4116-83d4-030b57bef5fc" />
+
 ## How It Works
 
 The Customer Churn Pipeline is designed to automate the process of predicting customer churn using a combination of batch processing, machine learning, and real-time API serving. Here's a step-by-step overview of the workflow:
