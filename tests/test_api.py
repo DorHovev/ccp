@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from api_service.main import app
 
 client = TestClient(app)
-import requests
+
 
 def test_predict_valid():
     payload = {
