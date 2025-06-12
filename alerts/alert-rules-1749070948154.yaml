@@ -1,0 +1,908 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: api
+      folder: api
+      interval: 1m
+      rules:
+        - uid: denyq7oxkdts0d
+          title: API Error Rate
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 43200
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                adhocFilters: []
+                datasource:
+                    type: prometheus
+                    uid: benn7jhqprwu8a
+                editorMode: code
+                expr: sum(rate(api_prediction_errors_total[5m])) / sum(rate(api_predictions_total[5m]))
+                instant: true
+                interval: ""
+                intervalMs: 15000
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.05
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: api_batch_metrics
+          panelId: 3
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: api_batch_metrics
+            __panelId__: "3"
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: aenyreckmnrb4c
+          title: API Prediction Latency (95th percentile)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 604800
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                adhocFilters: []
+                datasource:
+                    type: prometheus
+                    uid: benn7jhqprwu8a
+                editorMode: code
+                expr: histogram_quantile(0.95, sum(rate(api_prediction_latency_seconds_bucket[5m])) by (le))
+                instant: true
+                interval: ""
+                intervalMs: 15000
+                legendFormat: p95 prediction latency
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 1.5
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: api_batch_metrics
+          panelId: 7
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: api_batch_metrics
+            __panelId__: "7"
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: aenytlmtaboqob
+          title: Validation Failures Rate
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                editorMode: code
+                expr: sum(rate(api_data_validation_failures_total[5m]))
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 10
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: cenytrb1jgjy8f
+          title: API Requests by Status
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                editorMode: code
+                expr: sum(rate(http_requests_total{status=~"5.."}[5m])) > 5
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: eenyu9jme4vswc
+          title: APITrafficDrop
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                editorMode: code
+                expr: sum(rate(api_predictions_total[10m])) < (avg_over_time(sum(rate(api_predictions_total[10m]))[24h:10m]) * 0.2)
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            summary: |-
+                summary: "API traffic dropped"
+                    description: "Less than 20% of normal prediction volume."
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+    - orgId: 1
+      name: batch
+      folder: batch
+      interval: 1m
+      rules:
+        - uid: aenyqhcnsix34f
+          title: Batch Error Rate
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 43200
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                adhocFilters: []
+                datasource:
+                    type: prometheus
+                    uid: benn7jhqprwu8a
+                editorMode: code
+                expr: "sum(rate(batch_job_errors_total[5m])) / sum(rate(batch_job_predictions_made_total[5m]))\r\n"
+                instant: true
+                interval: ""
+                intervalMs: 15000
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.05
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: api_batch_metrics
+          panelId: 10
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: api_batch_metrics
+            __panelId__: "10"
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: eenyqxuhbjhtsd
+          title: Last Batch Success
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 43200
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                adhocFilters: []
+                datasource:
+                    type: prometheus
+                    uid: benn7jhqprwu8a
+                editorMode: code
+                expr: time() - max(batch_job_last_success_timestamp_seconds)
+                instant: true
+                interval: ""
+                intervalMs: 15000
+                legendFormat: last success
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 87000
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: api_batch_metrics
+          panelId: 14
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: api_batch_metrics
+            __panelId__: "14"
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: eenyripfsltdsf
+          title: Batch Job Duration (95th percentile)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 604800
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                adhocFilters: []
+                datasource:
+                    type: prometheus
+                    uid: benn7jhqprwu8a
+                editorMode: code
+                expr: "histogram_quantile(0.95, sum(rate(batch_job_duration_seconds_bucket[5m])) by (le))\r\n"
+                instant: true
+                interval: ""
+                intervalMs: 15000
+                legendFormat: p95 batch duration
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 600
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: api_batch_metrics
+          panelId: 13
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: api_batch_metrics
+            __panelId__: "13"
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: aenys9yfejp4wf
+          title: 'Files Fetched vs Processed '
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                editorMode: code
+                expr: "abs(\r\n  sum(increase(batch_job_files_fetched_total[1h])) -\r\n  sum(increase(batch_job_files_processed_total[1h]))\r\n) > 0"
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: cenysdqbq6dj4e
+          title: Rows Fetched vs After Preprocessing
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                editorMode: code
+                expr: "abs(\r\n  sum(increase(batch_job_rows_fetched_for_preprocessing_total[1h])) -\r\n  sum(increase(batch_job_rows_after_preprocessing_total[1h]))\r\n) > 0"
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: denysgt6my5tsa
+          title: 'Files Processed Rate in Batch:'
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                editorMode: code
+                expr: sum(rate(batch_job_files_processed_total[5m]))
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: aenyth4jra22of
+          title: Batch Predictions Per Second
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                editorMode: code
+                expr: sum(rate(batch_job_predictions_made_total[5m]))
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 1
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 500
+                            - 0
+                        type: lt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: B
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+    - orgId: 1
+      name: docker
+      folder: docker
+      interval: 1m
+      rules:
+        - uid: fenyrahsy8buob
+          title: Process Resident Memory (MB)
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 604800
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                adhocFilters: []
+                datasource:
+                    type: prometheus
+                    uid: benn7jhqprwu8a
+                editorMode: code
+                expr: "process_resident_memory_bytes / 1024 / 1024\r\n"
+                instant: true
+                interval: ""
+                intervalMs: 15000
+                legendFormat: '{{job}}'
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 400
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: api_batch_metrics
+          panelId: 33
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: api_batch_metrics
+            __panelId__: "33"
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: cenyrzj0dxaf4c
+          title: Process CPU Time 1h
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 604800
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                adhocFilters: []
+                datasource:
+                    type: prometheus
+                    uid: benn7jhqprwu8a
+                editorMode: code
+                expr: rate(process_cpu_seconds_total[1h]) * 3600
+                instant: true
+                interval: ""
+                intervalMs: 15000
+                legendFormat: '{{job}}'
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 100
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: api_batch_metrics
+          panelId: 34
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: api_batch_metrics
+            __panelId__: "34"
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: aenyukfkd2neoc
+          title: ProcessCPUTooHigh
+          condition: C
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                editorMode: code
+                expr: 'rate(process_cpu_seconds_total[5m]) '
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0.8
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            description: Check process CPU usage.
+            summary: Process CPU usage above 80%
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: denyur9tz6waoe
+          title: ProcessMemoryTooHigh
+          condition: B
+          data:
+            - refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: benn7jhqprwu8a
+              model:
+                editorMode: code
+                expr: process_resident_memory_bytes
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: A
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params: []
+                      reducer:
+                        params: []
+                        type: avg
+                      type: query
+                datasource:
+                    name: Expression
+                    type: __expr__
+                    uid: __expr__
+                expression: $A / 1024 / 1024 > 350
+                hide: false
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: B
+                type: math
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            description: Investigate for memory leaks.
+            summary: Process resident memory above 350MB
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
