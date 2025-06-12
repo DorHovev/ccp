@@ -12,7 +12,8 @@ Customer Churn Pipeline is an end-to-end MLOps solution for predicting customer 
 - **Containerized Deployment:** All components run in isolated Docker containers.
 - **CI/CD: Automated testing, build, and deployment with GitHub Actions.
 
-  <img width="503" alt="image" src="https://github.com/user-attachments/assets/653a440d-c3c3-4116-83d4-030b57bef5fc" />
+<img width="763" alt="image" src="https://github.com/user-attachments/assets/a2f34f96-5354-42dc-9740-eede19cf5352" />
+
 
 ## How It Works
 
