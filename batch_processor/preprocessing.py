@@ -65,11 +65,18 @@ class DataPreprocessor:
     def _handle_contract(self, df: pd.DataFrame) -> pd.DataFrame:
         required_contract_cols = ['Month-to-month', 'One year', 'Two year']
         if 'contract' in df.columns:
-            df['contract'] = df['contract'].fillna('Unknown') # Handle NaNs before get_dummies
+            null_mask = df['contract'].isnull()
+            count = null_mask.sum()
+            if count > 0:
+                logger.warning(f"Dropping {count} rows due to NaN in 'contract'.")
+                for idx, row in df[null_mask].iterrows():
+                    logger.error(f"Dropping row {idx} due to missing value in 'contract'")
+                    record_error("preprocessing_missing_important_column", f"Row {idx} dropped: missing contract")
+                df = df[~null_mask]
             try:
                 contract_dummies = pd.get_dummies(df['contract'], prefix='contract', dtype=int)
                 df = pd.concat([df, contract_dummies], axis=1)
-                # Rename columns to match model's expected feature names
+                # Rename columns to match config/model's expected feature names
                 df.rename(columns={
                     'contract_Month-to-month': 'Month-to-month',
                     'contract_One year': 'One year',
@@ -82,11 +89,9 @@ class DataPreprocessor:
                 for col in required_contract_cols:
                     df[col] = 0 # Fallback
         else:
-            logger.warning("'contract' column not found. Creating dummy contract columns with 0.")
-            record_error("preprocessing_missing_column", "contract column absent, dummy columns created with 0")
-            for col in required_contract_cols:
-                df[col] = 0
-        
+            logger.warning("'contract' column not found. Dropping all rows due to missing contract column.")
+            record_error("preprocessing_missing_column", "contract column absent, all rows dropped")
+            return df.iloc[0:0]  # Return empty DataFrame
         # Ensure all required one-hot encoded columns are present
         for col in required_contract_cols:
             if col not in df.columns:
@@ -96,22 +101,25 @@ class DataPreprocessor:
 
     def _handle_tenure(self, df: pd.DataFrame) -> pd.DataFrame:
         if 'tenure' in df.columns:
-            if df['tenure'].isnull().any():
-                # Use configured default mean, or calculate if not available (though less ideal for consistency)
-                fill_value = self.tenure_fill
-                logger.info(f"Filling NaNs in 'tenure' with {fill_value}.")
-                df['tenure'] = df['tenure'].fillna(fill_value)
+            null_mask = df['tenure'].isnull()
+            count = null_mask.sum()
+            if count > 0:
+                logger.warning(f"Dropping {count} rows due to NaN in 'tenure'.")
+                for idx, row in df[null_mask].iterrows():
+                    logger.error(f"Dropping row {idx} due to missing value in 'tenure'")
+                    record_error("preprocessing_missing_important_column", f"Row {idx} dropped: missing tenure")
+                df = df[~null_mask]
             try:
                 df['tenure'] = df['tenure'].astype(int)
             except ValueError as e:
-                logger.error(f"Could not convert tenure to int after fillna: {e}. Attempting float then int.")
+                logger.error(f"Could not convert tenure to int after dropping NaNs: {e}. Attempting float then int.")
                 record_error("preprocessing_type_error", f"Tenure conversion: {e}")
-                df['tenure'] = df['tenure'].astype(float).astype(int) # If it was float string
+                df['tenure'] = df['tenure'].astype(float).astype(int)
             logger.info("'tenure' processed.")
         else:
-            logger.warning(f"'tenure' column not found. Creating with default fill value {self.tenure_fill}.")
-            df['tenure'] = int(self.tenure_fill)
-            record_error("preprocessing_missing_column", f"Tenure column absent, filled with {self.tenure_fill}")
+            logger.warning("'tenure' column not found. Dropping all rows due to missing tenure column.")
+            record_error("preprocessing_missing_column", "tenure column absent, all rows dropped")
+            return df.iloc[0:0]  # Return empty DataFrame
         return df
 
     def _ensure_model_columns(self, df: pd.DataFrame) -> pd.DataFrame:

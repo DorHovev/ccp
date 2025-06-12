@@ -73,6 +73,14 @@ class DatabaseManager:
             record_error("db_schema_creation", f"SQLAlchemy Error: {e}")
             CUSTOM_ERROR_TYPE_TOTAL.labels(custom_error_type="db_schema_creation").inc()
 
+    def safe_float(self, val):
+        if pd.isna(val) or str(val).strip() == '':
+            return None
+        try:
+            return float(val)
+        except Exception:
+            return None
+
     def load_csv_to_db(self, csv_filepath):
         rows_inserted = 0
         rows_skipped_duplicates = 0
@@ -129,7 +137,7 @@ class DatabaseManager:
                         'seniorcitizen': int(row.get('seniorcitizen', 0)) if pd.notna(row.get('seniorcitizen')) else None,
                         'partner': row.get('partner'),
                         'dependents': row.get('dependents'),
-                        'tenure': int(row.get('tenure', 0)) if pd.notna(row.get('tenure')) else None,
+                        'tenure': int(row.get('tenure')) if pd.notna(row.get('tenure')) and str(row.get('tenure')).strip() != '' else None,
                         'phoneservice': row.get('phoneservice'),
                         'multiplelines': row.get('multiplelines'),
                         'internetservice': row.get('internetservice'),
@@ -142,8 +150,8 @@ class DatabaseManager:
                         'contract': row.get('contract'),
                         'paperlessbilling': row.get('paperlessbilling'),
                         'paymentmethod': row.get('paymentmethod'),
-                        'monthlycharges': float(row.get('monthlycharges', 0.0)) if pd.notna(row.get('monthlycharges')) else None,
-                        'totalcharges': float(row.get('totalcharges', 0.0)) if pd.notna(row.get('totalcharges')) else None,
+                        'monthlycharges': self.safe_float(row.get('monthlycharges')),
+                        'totalcharges': self.safe_float(row.get('totalcharges')),
                         'data_source': os.path.basename(csv_filepath)
                     }
                     conn.execute(self.customer_data.insert().values(**insert_values))
