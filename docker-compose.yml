@@ -28,7 +28,9 @@ services:
     command: ["python", "-m", "batch_processor.main", "--reprocess-all"]
 
   api_service:
-    build: ./api_service
+    build:
+      context: .
+      dockerfile: api_service/Dockerfile
     ports:
       - "8000:8000"
     depends_on:

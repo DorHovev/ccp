@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
-from .logger import logger
-from .model_loader import load_model
-from .routes import health, predict
-from .exception_handlers import validation_exception_handler
+from api_service.logger import logger
+from api_service.model_loader import load_model
+from api_service.routes import health, predict
+from api_service.exception_handlers import validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 
 app = FastAPI(

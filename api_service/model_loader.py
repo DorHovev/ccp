@@ -2,7 +2,7 @@ import os
 import joblib
 from loguru import logger
 
-MODEL_PATH = os.getenv("MODEL_PATH", "churn_model.pickle")
+MODEL_PATH =  "churn_model.pickle"
 MODEL_COLUMNS_ORDERED = [
     'TotalCharges',
     'Month-to-month',
@@ -25,4 +25,4 @@ def load_model():
         logger.info(f"Churn prediction model loaded successfully from {MODEL_PATH}.")
     except Exception as e:
         logger.critical(f"Failed to load model at startup from {MODEL_PATH}: {e}", exc_info=True)
-        churn_prediction_model = None 
+        churn_prediction_model = None

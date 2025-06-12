@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from ..models import PredictionFeatures
-from ..model_loader import churn_prediction_model, MODEL_COLUMNS_ORDERED
+import api_service.model_loader as model_loader
 from ..metrics import API_PREDICTION_LATENCY_SECONDS, API_PREDICTION_ERRORS_TOTAL, API_PREDICTIONS_TOTAL, PREDICTION_CLASS_COUNT, FEATURE_MEAN, UNHANDLED_EXCEPTIONS
 from ..logger import logger
 import pandas as pd
@@ -14,7 +14,7 @@ async def predict_churn(input_data: PredictionFeatures):
     Requires one-hot encoded 'Contract' type columns and binary 'PhoneService'.
     """
     with API_PREDICTION_LATENCY_SECONDS.time():
-        if churn_prediction_model is None:
+        if model_loader.churn_prediction_model is None:
             logger.error("Prediction attempt failed: Model is not loaded.")
             API_PREDICTION_ERRORS_TOTAL.inc()
             raise HTTPException(status_code=503, detail="Model not available. Please try again later.")
@@ -29,12 +29,12 @@ async def predict_churn(input_data: PredictionFeatures):
                 'PhoneService': [input_data.PhoneService],
                 'tenure': [input_data.tenure]
             }
-            input_df = pd.DataFrame(data_dict, columns=MODEL_COLUMNS_ORDERED)
+            input_df = pd.DataFrame(data_dict, columns=model_loader.MODEL_COLUMNS_ORDERED)
             logger.debug(f"DataFrame for prediction: \n{input_df.to_string()}")
             for col in input_df.columns:
                 FEATURE_MEAN.labels(feature_name=col).set(input_df[col].mean())
-            prediction = churn_prediction_model.predict(input_df)
-            probabilities = churn_prediction_model.predict_proba(input_df)
+            prediction = model_loader.churn_prediction_model.predict(input_df)
+            probabilities = model_loader.churn_prediction_model.predict_proba(input_df)
             churn_probability = probabilities[0][1]
             no_churn_probability = probabilities[0][0]
             logger.info(f"Prediction successful for input. Churn: {int(prediction[0])}, Prob: {churn_probability:.4f}")
